@@ -1,4 +1,2 @@
-<<<<<<< HEAD
 # Shield-multiagent
-=======
 
