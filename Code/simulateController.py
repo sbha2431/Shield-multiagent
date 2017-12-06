@@ -8,6 +8,82 @@ import grid_partition
 import itertools
 import numpy as np
 
+def parsePermissiveStrategy(filename):
+    automaton = dict()
+    file = open(filename)
+    varflag = 0
+    transflag = 0
+    for line in file:
+        l = line.split()
+        if len(l) > 0:
+            if l[0] == 'State':
+                transflag = 0
+                automaton_state = int(l[1])
+                automaton[automaton_state] = dict.fromkeys(['State','Successors'])
+                automaton[automaton_state]['State'] = dict()
+                automaton[automaton_state]['Successors'] = []
+                varflag = 1
+            elif varflag == 1:
+                for var in l:
+                    v = var[0:var.index('@')]
+                    if v not in automaton[automaton_state]['State'].keys():
+                        automaton[automaton_state]['State'][v] = []
+                        automaton[automaton_state]['State'][v].append(int(var[var.index(':')+1]))
+                    else:
+                        automaton[automaton_state]['State'][v].append(int(var[var.index(':')+1]))
+                varflag = 0
+                transflag = 1
+                for var in automaton[automaton_state]['State'].keys():
+                    automaton[automaton_state]['State'][var] = int(''.join(str(e) for e in automaton[automaton_state]['State'][var])[::-1], 2)
+            elif transflag == 1:
+                automaton[automaton_state]['Successors'].append(int(l[0]))
+    return automaton
+
+
+def parseJson(filename):
+    automaton = dict()
+    file = open(filename)
+    data = json.load(file)
+    file.close()
+    variables = dict()
+    for var in data['variables']:
+        if '@' in var:
+            v = var[0:var.index('@')]
+            Flag = True
+        else:
+            v = copy.deepcopy(var)
+            Flag = False
+        if v not in variables.keys():
+            if Flag:
+                variables[v] = [data['variables'].index(var), max(loc for loc, val in enumerate(data['variables']) if val[0:val.index('@')] == v)+1]
+            else:
+                variables[v] = [data['variables'].index(var), data['variables'].index(var)+1]
+
+    for s in data['nodes'].keys():
+        automaton[int(s)] = dict.fromkeys(['State','Successors'])
+        automaton[int(s)]['State'] = dict()
+        automaton[int(s)]['Successors'] = []
+        for v in variables.keys():
+            bin = data['nodes'][s]['state'][variables[v][0]:variables[v][1]]
+            automaton[int(s)]['State'][v] = int(''.join(str(e) for e in bin)[::-1], 2)
+            automaton[int(s)]['Successors'] = data['nodes'][s]['trans']
+    return automaton
+
+
+def computeInitialState(automaton,initial):
+    for state in automaton.keys():
+        check = 0
+        for var in initial.keys():
+            if automaton[state]['State'][var] == initial[var]:
+                check+=1
+            else:
+                break
+        if check == len(initial.keys()):
+            break
+    return state
+
+
+
 def powerset(s):
     x = len(s)
     a = []
@@ -38,58 +114,19 @@ def check_int(gwg,ushield,u):
 
 
 def centralizedShield(filename,gwg):
-    file = open(filename)
-    data = json.load(file)
-    file.close()
-    automata_state = 0
-    "Split up the variables in the json file"
-    vars = data['variables']
-    varletters = ['x','y','k','b','u']
-    xlen = 0
-    ylen = 0
-    klen = 0
-    blen = 0
-    ulen = 0
-    for v in vars:
-        if v[0] == varletters[0]:
-            xlen += 1
-        if v[0] == varletters[1]:
-            ylen += 1
-        if v[0] == varletters[2]:
-            klen += 1
-        if v[0] == varletters[3]:
-            blen += 1
-        if v[0] == varletters[4]:
-            ulen += 1
-
-    xlen = xlen/gwg.nagents
-    ylen = ylen/gwg.nagents
-    klen = klen/gwg.nagents
-    blen = blen/gwg.nagents
-    ulen = ulen/(2*gwg.nagents)
-
-    totlen = xlen+ylen+klen+blen+ulen
-    totstate = data['nodes'][str(automata_state)]['state']
-    shieldstart = totlen*gwg.nagents
+    automaton = parseJson(filename)
+    automaton_state = 0
     shield_action = [None]*gwg.nagents
     k = [None]*gwg.nagents
-    b = [None]*gwg.nagents
     control_action = [None]*gwg.nagents
     control_action_dirn = [None]*gwg.nagents
     agentpos = [(None,None)]*gwg.nagents
     nextgridstate = [None]*gwg.nagents
     for n in range(gwg.nagents):
-        ubin = totstate[n*totlen+(xlen+ylen+klen+blen):n*totlen+(xlen+ylen+klen+blen+ulen)]
-        ushieldbin = totstate[shieldstart+(n*ulen):(shieldstart+ulen*n)+ulen]
-        kbin = totstate[n*totlen+xlen+ylen:n*totlen+xlen+ylen+klen]
-        bbin = totstate[n*totlen+xlen+ylen+klen:n*totlen+xlen+ylen+klen+blen]
-        k[n] = int(''.join(str(e) for e in kbin)[::-1], 2)
-        # b[n] = int(''.join(str(e) for e in bbin)[::-1], 2)
-        shield_action[n] = int(''.join(str(e) for e in ushieldbin)[::-1], 2)
-        control_action[n] = int(''.join(str(e) for e in ubin)[::-1], 2)
-        xbin = totstate[n*totlen:(n*totlen)+xlen]
-        ybin = totstate[n*totlen+xlen:(n*totlen)+xlen+ylen]
-        agentpos[n] = (int(''.join(str(e) for e in xbin)[::-1], 2),int(''.join(str(e) for e in ybin)[::-1], 2))
+        k[n] = automaton[automaton_state]['State']['k'+str(n)]
+        shield_action[n] = automaton[automaton_state]['State']['ushield'+str(n)]
+        control_action[n] = automaton[automaton_state]['State']['uloc'+str(n)]
+        agentpos[n] = (automaton[automaton_state]['State']['x'+str(n)],automaton[automaton_state]['State']['y'+str(n)])
         nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
     check_int(gwg,shield_action,control_action)
     print '{} steps interfered with'.format(k)
@@ -97,7 +134,7 @@ def centralizedShield(filename,gwg):
     gwg.render()
 
     while True:
-        nextstates = data['nodes'][str(automata_state)]['trans']
+        nextstates = automaton[automaton_state]['Successors']
         combarrow = [None]*gwg.nagents
         for n in range(gwg.nagents):
             while True:
@@ -106,25 +143,69 @@ def centralizedShield(filename,gwg):
                     combarrow[n] = gwg.actlist.index(combarrow[n])
                     break
         for ns in nextstates:
-            ntotstate = data['nodes'][str(ns)]['state']
             for n in range(gwg.nagents):
-                ubin = ntotstate[n*totlen+(xlen+ylen+klen+blen):n*totlen+(xlen+ylen+klen+blen+ulen)]
-                control_action[n] = int(''.join(str(e) for e in ubin)[::-1], 2)
+                control_action[n] = automaton[ns]['State']['uloc'+str(n)]
                 control_action_dirn[n] = gwg.actlist[control_action[n]]
             if control_action == combarrow:
                 for n in range(gwg.nagents):
-                    xbin = ntotstate[n*totlen:(n*totlen)+xlen]
-                    ybin = ntotstate[n*totlen+xlen:(n*totlen)+xlen+ylen]
-                    ushieldbin = ntotstate[shieldstart+(n*ulen):(shieldstart+ulen*n)+ulen]
-                    kbin = ntotstate[n*totlen+xlen+ylen:n*totlen+xlen+ylen+klen] # Note that we use the k and b values from the previous time step.
-                    bbin = ntotstate[n*totlen+xlen+ylen+klen:n*totlen+xlen+ylen+klen+blen]
-                    k[n] = int(''.join(str(e) for e in kbin)[::-1], 2)
-                    # b[n] = int(''.join(str(e) for e in bbin)[::-1], 2)
-                    shield_action[n] = int(''.join(str(e) for e in ushieldbin)[::-1], 2)
-                    agentpos[n] = (int(''.join(str(e) for e in xbin)[::-1], 2),int(''.join(str(e) for e in ybin)[::-1], 2))
+                    k[n] = automaton[ns]['State']['k'+str(n)]
+                    shield_action[n] = automaton[ns]['State']['ushield'+str(n)]
+                    agentpos[n] = (automaton[ns]['State']['x'+str(n)],automaton[ns]['State']['y'+str(n)])
                     nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
-                    automata_state = copy.deepcopy(ns)
+                    automaton_state = copy.deepcopy(ns)
                 break
+        check_int(gwg,shield_action,control_action)
+        print '{} steps interfered with'.format(k)
+        gwg.current = copy.deepcopy(nextgridstate)
+        gwg.render()
+        # print automaton[automaton_state]['State']['sane']
+
+def centralizedShield_Local(local_filenames,shield_filename,gwg):
+    automaton = []*gwg.nagents
+    automaton_state = [0]*gwg.nagents
+    for n in range(gwg.nagents):
+        automaton[n] = parseJson(local_filenames[n])
+    automaton_shield = parseJson(shield_filename)
+    automaton_shield_state = 0
+    shield_action = [None]*gwg.nagents
+    k = [None]*gwg.nagents
+    b = [None]*gwg.nagents
+    control_action = [None]*gwg.nagents
+    shieldcontrolaction = [None]*gwg.nagents
+    control_action_dirn = [None]*gwg.nagents
+    agentpos = [(None,None)]*gwg.nagents
+    nextgridstate = [None]*gwg.nagents
+    for n in range(gwg.nagents):
+        k[n] = automaton_shield[automaton_shield_state]['State']['k'+str(n)]
+        shield_action[n] = automaton_shield[automaton_shield_state]['State']['ushield'+str(n)]
+        control_action[n] = automaton_shield[automaton_shield_state]['State']['uloc'+str(n)]
+        agentpos[n] = (automaton_shield[automaton_shield_state]['State']['x'+str(n)],automaton_shield[automaton_shield_state]['State']['y'+str(n)])
+        nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
+    check_int(gwg,shield_action,control_action)
+    print '{} steps interfered with'.format(k)
+    gwg.current = copy.deepcopy(nextgridstate)
+    gwg.render()
+
+    while True:
+        while True:
+            keypress = gwg.getkeyinput()
+            if keypress != None:
+                break
+        nextstates = automaton_shield[automaton_shield_state]['Successors']
+        for n in range(gwg.nagents):
+            control_action[n] = automaton[n][automaton_state]['State']['u']
+            for ns in nextstates:
+                for m in range(gwg.nagents):
+                    shieldcontrolaction[m] = automaton_shield[ns]['State']['uloc'+str(n)]
+                if control_action == shieldcontrolaction:
+                    k[n] = automaton_shield[ns]['State']['k'+str(n)]
+                    b[n] = automaton_shield[ns]['State']['b'+str(n)]
+                    shield_action[n] = automaton_shield[ns]['State']['ushield'+str(n)]
+                    agentpos[n] = (automaton_shield[ns]['State']['x'+str(n)],automaton_shield[ns]['State']['y'+str(n)])
+                    nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
+                    automaton_shield_state = copy.deepcopy(ns)
+            a
+
         check_int(gwg,shield_action,control_action)
         print '{} steps interfered with'.format(k)
         gwg.current = copy.deepcopy(nextgridstate)
@@ -132,66 +213,26 @@ def centralizedShield(filename,gwg):
 
 
 def centralizedPermissiveShield(filename,gwg):
-    file = open(filename)
-    data = json.load(file)
-    file.close()
-    automata_state = 0
-    "Split up the variables in the json file"
-    vars = data['variables']
-    varletters = ['x','y','k','b','u']
-    xlen = 0
-    ylen = 0
-    klen = 0
-    blen = 0
-    ulen = 0
-    for v in vars:
-        if v[0] == varletters[0]:
-            xlen += 1
-        if v[0] == varletters[1]:
-            ylen += 1
-        if v[0] == varletters[2]:
-            klen += 1
-        if v[0] == varletters[3]:
-            blen += 1
-        if v[0] == varletters[4]:
-            ulen += 1
-
-    xlen = xlen/gwg.nagents
-    ylen = ylen/gwg.nagents
-    klen = klen/gwg.nagents
-    blen = blen/gwg.nagents
-    ulen = ulen/(2*gwg.nagents)
-
-    totlen = xlen+ylen+klen+blen+ulen
-    totstate = data['nodes'][str(automata_state)]['state']
-    shieldstart = totlen*gwg.nagents
+    automaton = parsePermissiveStrategy(filename)
+    init = {'x0':0,'y0':3,'k0':0, 'uloc0':4, 'x1':3, 'y1':3, 'k1':0,'uloc1':4,'ushield0':4,'ushield1':4}
+    automatonstate = computeInitialState(automaton,init)
+    agentpos = [(None,None)]*gwg.nagents
     shield_action = [None]*gwg.nagents
     k = [None]*gwg.nagents
-    b = [None]*gwg.nagents
     control_action = [None]*gwg.nagents
-    control_action_dirn = [None]*gwg.nagents
-    agentpos = [(None,None)]*gwg.nagents
     nextgridstate = [None]*gwg.nagents
     for n in range(gwg.nagents):
-        ubin = totstate[n*totlen+(xlen+ylen+klen+blen):n*totlen+(xlen+ylen+klen+blen+ulen)]
-        ushieldbin = totstate[shieldstart+(n*ulen):(shieldstart+ulen*n)+ulen]
-        kbin = totstate[n*totlen+xlen+ylen:n*totlen+xlen+ylen+klen]
-        bbin = totstate[n*totlen+xlen+ylen+klen:n*totlen+xlen+ylen+klen+blen]
-        k[n] = int(''.join(str(e) for e in kbin)[::-1], 2)
-        # b[n] = int(''.join(str(e) for e in bbin)[::-1], 2)
-        shield_action[n] = int(''.join(str(e) for e in ushieldbin)[::-1], 2)
-        control_action[n] = int(''.join(str(e) for e in ubin)[::-1], 2)
-        xbin = totstate[n*totlen:(n*totlen)+xlen]
-        ybin = totstate[n*totlen+xlen:(n*totlen)+xlen+ylen]
-        agentpos[n] = (int(''.join(str(e) for e in xbin)[::-1], 2),int(''.join(str(e) for e in ybin)[::-1], 2))
+        agentpos[n] = (automaton[automatonstate]['State']['x'+str(n)],automaton[automatonstate]['State']['y'+str(n)])
+        shield_action[n] = automaton[automatonstate]['State']['ushield'+str(n)]
+        control_action[n] = automaton[automatonstate]['State']['uloc'+str(n)]
         nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
     check_int(gwg,shield_action,control_action)
-    print '{} steps interfered with'.format(k)
+    # print '{} steps interfered with'.format(k)
     gwg.current = copy.deepcopy(nextgridstate)
     gwg.render()
 
     while True:
-        nextstates = data['nodes'][str(automata_state)]['trans']
+        nextstates = automaton[automatonstate]['Successors']
         combarrow = [None]*gwg.nagents
         for n in range(gwg.nagents):
             while True:
@@ -199,28 +240,29 @@ def centralizedPermissiveShield(filename,gwg):
                 if combarrow[n] != None:
                     combarrow[n] = gwg.actlist.index(combarrow[n])
                     break
-        for ns in nextstates:
-            ntotstate = data['nodes'][str(ns)]['state']
+        nextmovestates = []
+        for ns in nextstates: #Find states corresponding to the arrow key movement
             for n in range(gwg.nagents):
-                ubin = ntotstate[n*totlen+(xlen+ylen+klen+blen):n*totlen+(xlen+ylen+klen+blen+ulen)]
-                control_action[n] = int(''.join(str(e) for e in ubin)[::-1], 2)
-                control_action_dirn[n] = gwg.actlist[control_action[n]]
-            if control_action == combarrow:
+                control_action[n] = automaton[ns]['State']['uloc'+str(n)]
+                shield_action[n] = automaton[ns]['State']['ushield'+str(n)]
+            if (control_action == combarrow):
+                nextmovestates.append(ns)
+        for ns in nextmovestates: # Find states where the shield does not interfere if possible
+            for n in range(gwg.nagents):
+                control_action[n] = automaton[ns]['State']['uloc'+str(n)]
+                shield_action[n] = automaton[ns]['State']['ushield'+str(n)]
+            if control_action == shield_action or (nextmovestates.index(ns) == len(nextmovestates)-1):
+                if (nextstates.index(ns) == len(nextstates)-1):
+                    a = 1
+                automatonstate = copy.deepcopy(ns)
                 for n in range(gwg.nagents):
-                    xbin = ntotstate[n*totlen:(n*totlen)+xlen]
-                    ybin = ntotstate[n*totlen+xlen:(n*totlen)+xlen+ylen]
-                    ushieldbin = ntotstate[shieldstart+(n*ulen):(shieldstart+ulen*n)+ulen]
-                    kbin = ntotstate[n*totlen+xlen+ylen:n*totlen+xlen+ylen+klen] # Note that we use the k and b values from the previous time step.
-                    bbin = ntotstate[n*totlen+xlen+ylen+klen:n*totlen+xlen+ylen+klen+blen]
-                    k[n] = int(''.join(str(e) for e in kbin)[::-1], 2)
-                    # b[n] = int(''.join(str(e) for e in bbin)[::-1], 2)
-                    shield_action[n] = int(''.join(str(e) for e in ushieldbin)[::-1], 2)
-                    agentpos[n] = (int(''.join(str(e) for e in xbin)[::-1], 2),int(''.join(str(e) for e in ybin)[::-1], 2))
+                    agentpos[n] = (automaton[automatonstate]['State']['x'+str(n)],automaton[automatonstate]['State']['y'+str(n)])
+                    shield_action[n] = automaton[automatonstate]['State']['ushield'+str(n)]
+                    control_action[n] = automaton[automatonstate]['State']['uloc'+str(n)]
                     nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
-                    automata_state = copy.deepcopy(ns)
                 break
         check_int(gwg,shield_action,control_action)
-        print '{} steps interfered with'.format(k)
+        # print '{} steps interfered with'.format(k)
         gwg.current = copy.deepcopy(nextgridstate)
         gwg.render()
 

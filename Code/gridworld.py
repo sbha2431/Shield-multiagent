@@ -206,6 +206,8 @@ class Gridworld():
                     return 'N'
                 elif event.key == pygame.K_DOWN:
                     return 'S'
+                elif event.key == pygame.K_SPACE:
+                    return 'Space'
 
     def build_templates(self):
 

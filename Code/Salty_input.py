@@ -139,6 +139,9 @@ def write_to_slugs_resilient(infile,gw,init,targets,k,b):
     file.write('k = {}\n'.format(0))
     file.write('b = {}\n'.format(0))
 
+    file.write('[ENV_INIT]\n')
+    file.write('u = {}\n'.format(4))
+
 
     file.write('\n[ENV_TRANS]\n')
     for s in states:
@@ -186,7 +189,7 @@ def write_to_slugs_resilient(infile,gw,init,targets,k,b):
     # Writing env_liveness
     file.close()
 
-def write_to_slugs_central_shield(infile,gw,init,k,b):
+def write_to_slugs_central_shield(infile,gw,init,k):
     states = gw.states
     filename = infile+'.structuredslugs'
     file = open(filename,'w')
@@ -195,7 +198,6 @@ def write_to_slugs_central_shield(infile,gw,init,k,b):
         file.write('x{}:0...{}\n'.format(n,gw.ncols-1))
         file.write('y{}:0...{}\n'.format(n,gw.nrows-1))
         file.write('k{}:0...{}\n'.format(n,k[n]))
-        file.write('b{}:0...{}\n'.format(n,b[n]))
         file.write('uloc{}:0...{}\n'.format(n,gw.nactions-1))
 
     file.write('[OUTPUT]\n')
@@ -206,8 +208,7 @@ def write_to_slugs_central_shield(infile,gw,init,k,b):
     for n in range(gw.nagents):
         file.write('x{} = {}\n'.format(n,gw.coords(init[n])[1]))
         file.write('y{} = {}\n'.format(n,gw.coords(init[n])[0]))
-        file.write('k{} = {}\n'.format(n,0))
-        file.write('b{} = {}\n'.format(n,0))
+        file.write('k{} = {}\n'.format(n,1))
         file.write('uloc{} = {}\n'.format(n,4))
 
     file.write('\n[ENV_TRANS]\n')
@@ -217,29 +218,28 @@ def write_to_slugs_central_shield(infile,gw,init,k,b):
             for uloc in range(gw.nactions):
                 for ushield in range(gw.nactions):
                     for k1 in range(k[n]+1):
-                        for b1 in range(b[n]+1):
-                            stri = "(x{} = {} /\\ y{} = {} /\\ uloc{} = {} /\\ ushield{} = {} /\\" \
-                                   " k{} = {} /\\ b{} = {}) -> ".format(n,x,n,y,n,uloc,n,ushield,n,k1,n,b1)
-                            ns = np.nonzero(gw.prob[gw.actlist[ushield]][s])[0][0]
-                            ny,nx = gw.coords(ns)
-                            if uloc == ushield:
-                                if b1 < b[n]:
-                                    stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = 0 /\\ b{}' = {}) \\/".format(n,nx,n,ny,n,n,b1+1)
-                                else:
-                                    stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = 0 /\\ b{}' = {}) \\/".format(n,nx,n,ny,n,n,b1)
+                        stri = "(x{} = {} /\\ y{} = {} /\\ uloc{} = {} /\\ ushield{} = {} /\\" \
+                               " k{} = {}) -> ".format(n,x,n,y,n,uloc,n,ushield,n,k1,n)
+                        ns = np.nonzero(gw.prob[gw.actlist[ushield]][s])[0][0]
+                        ny,nx = gw.coords(ns)
+                        if uloc == ushield:
+                            if k1 > 0:
+                                stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = {}) \\/".format(n,nx,n,ny,n,k1-1)
                             else:
-                                if k1 <  k[n]:
-                                    stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = {} /\\ b{}' = 0) \\/".format(n,nx,n,ny,n,k1+1,n)
-                                else:
-                                    stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = {} /\\ b{}' = 0) \\/".format(n,nx,n,ny,n,k1,n)
-                            stri = stri[:-3]
-                            stri += '\n'
-                            file.write(stri)
+                                stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = 0) \\/".format(n,nx,n,ny,n)
+                        else:
+                            if k1 <  k[n]:
+                                stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = {}) \\/".format(n,nx,n,ny,n,k1+1)
+                            else:
+                                stri += "(x{}' = {} /\\ y{}' = {} /\\ k{}' = {}) \\/".format(n,nx,n,ny,n,k1)
+                        stri = stri[:-3]
+                        stri += '\n'
+                        file.write(stri)
 
     # writing env_trans
     file.write('\n[SYS_LIVENESS]\n')
     for n in range(gw.nagents):
-        file.write('b{} = {}\n'.format(n,b[n]))
+        file.write('k{} = {}\n'.format(n,0))
 
     file.write('\n[SYS_TRANS]\n')
     for n in range(gw.nagents):
@@ -249,4 +249,76 @@ def write_to_slugs_central_shield(infile,gw,init,k,b):
                 file.write('!(x{} = x{} /\\ y{} = y{})\n'.format(n,m,n,m))
 
     # Writing env_liveness
+    file.close()
+
+def write_to_slugs_central_shield2(infile,gw,init,k,b):
+    states = gw.states
+    filename = infile+'.structuredslugs'
+    file = open(filename,'w')
+    file.write('[INPUT]\n')
+    for n in range(gw.nagents):
+        file.write('x{}:0...{}\n'.format(n,gw.ncols-1))
+        file.write('y{}:0...{}\n'.format(n,gw.nrows-1))
+        file.write('uloc{}:0...{}\n'.format(n,gw.nactions-1))
+
+
+    file.write('[OUTPUT]\n')
+    file.write('sane:0...1\n')
+    for n in range(gw.nagents):
+        file.write('ushield{}:0...{}\n'.format(n,gw.nactions-1))
+        file.write('k{}:0...{}\n'.format(n,k[n]))
+        file.write('b{}:0...{}\n'.format(n,b[n]))
+
+    file.write('[ENV_INIT]\n')
+    for n in range(gw.nagents):
+        file.write('x{} = {}\n'.format(n,gw.coords(init[n])[1]))
+        file.write('y{} = {}\n'.format(n,gw.coords(init[n])[0]))
+        file.write('uloc{} = {}\n'.format(n,4))
+
+
+    file.write('[SYS_INIT]\n')
+    file.write('sane = 0\n')
+    for n in range(gw.nagents):
+        file.write('ushield{} = {}\n'.format(n,4))
+        file.write('k{} = {}\n'.format(n,0))
+        file.write('b{} = {}\n'.format(n,0))
+
+    # writing env_trans
+    file.write('\n[ENV_TRANS]\n')
+    for n in range(gw.nagents):
+        for s in states:
+            y,x = gw.coords(s)
+            for ushield in range(gw.nactions):
+                stri = "(x{} = {} /\\ y{} = {} /\\ ushield{} = {}) -> ".format(n,x,n,y,n,ushield)
+                ns = np.nonzero(gw.prob[gw.actlist[ushield]][s])[0][0]
+                ny,nx = gw.coords(ns)
+                stri += "(x{}' = {} /\\ y{}' = {})\n".format(n,nx,n,ny)
+                file.write(stri)
+
+    #Writing sys liveness
+    file.write('\n[SYS_LIVENESS]\n')
+    stri = ''
+    for n in range(gw.nagents):
+        stri += 'b{}\' >= {}\n'.format(n,b[n])
+    stri += '\n'
+    file.write(stri)
+
+    file.write('\n[SYS_TRANS]\n')
+    for n in range(gw.nagents):
+        file.write('!(k{} = {})\n'.format(n,k[n]))
+        for m in range(gw.nagents):
+            if m != n:
+                file.write('!(x{} = x{} /\\ y{} = y{})\n'.format(n,m,n,m))
+    for n in range(gw.nagents):
+        stri = "(uloc{}' = ushield{}' /\\ b{} < {}) -> k{}' = 0 /\\ b{}' = b{}+1\n".format(n,n,n,b[n]-1,n,n,n,n)
+        stri += "(uloc{}' = ushield{}' /\\ b{} >= {}) -> k{}' = 0 /\\ b{}' = {}\n".format(n,n,n,b[n]-1,n,n,b[n])
+        stri += "!(uloc{}' = ushield{}') -> (k{}' = k{}+1) /\\ b{}' = 0\n".format(n,n,n,n,n)
+        file.write(stri)
+    stri = 'sane\' = 1 <-> ('
+    for n in range(gw.nagents):
+        stri += 'b{}\' = {} \\/ '.format(n,0)
+    stri = stri[:-3]
+    stri += ')'
+    stri += '\n'
+    file.write(stri)
     file.close()

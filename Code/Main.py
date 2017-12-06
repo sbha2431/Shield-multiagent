@@ -32,24 +32,32 @@ gwg.colorstates = [set(),set()]
 gwg.render()
 
 gwg.draw_state_labels()
-
+#
 # for n in range(nagents):
-#     outfile = 'test{}'.format(n)
-#     infile = 'test{}'.format(n)
+#     outfile = 'LocalController{}x{}_{}.json'.format(gwg.nrows,gwg.ncols,n)
+#     infile = 'LocalController{}x{}_{}'.format(gwg.nrows,gwg.ncols,n)
 #     print 'output file: ', outfile
 #     print 'input file name:', infile
 #
 #     print 'Writing input file...'
-#     Salty_input.write_to_slugs_resilient(infile,gwg,initial[n],targets[n],4,4)
-infile = 'shieldtest'
-outfile = 'shieldtest'
-Salty_input.write_to_slugs_central_shield(infile,gwg,initial,[2,2],[0,0])
+#     Salty_input.write_to_slugs_resilient(infile,gwg,initial[n],targets[n],7,6)
+#     print 'Converting input file...'
+#     os.system('python compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
+#     print('Computing controller...')
+#     sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
+#     sp.wait()
+
+infile = 'shieldtest_4x4_2'
+outfile = 'shieldtest_4x4_2.json'
+Salty_input.write_to_slugs_central_shield2(infile,gwg,initial,[6,6],[6,6])
 print 'Converting input file...'
 os.system('python compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
 print('Computing controller...')
-# sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
-sp = subprocess.Popen(slugs + ' --extractExplicitPermissiveStrategy ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
+sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
+sp.wait()
+simulateController.centralizedShield(outfile,gwg)
+
+# simulateController.centralizedPermissiveShield(outfile,gwg)
+# sp = subprocess.Popen(slugs + ' --extractExplicitPermissiveStrategy ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
 # #     # sp = subprocess.Popen(slugs + ' --analyzeInitialPositions ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
 # #     # # sp = subprocess.Popen(slugs + ' --counterStrategy ' + infile+'.slugsin > ' + outfile,shell=True, stdout=subprocess.PIPE)
-sp.wait()
-# simulateController.centralizedShield(outfile,gwg)
