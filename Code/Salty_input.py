@@ -139,7 +139,7 @@ def write_to_slugs_resilient(infile,gw,init,targets,k,b):
     file.write('k = {}\n'.format(0))
     file.write('b = {}\n'.format(0))
 
-    file.write('[ENV_INIT]\n')
+    file.write('[SYS_INIT]\n')
     file.write('u = {}\n'.format(4))
 
 

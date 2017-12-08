@@ -40,22 +40,25 @@ gwg.draw_state_labels()
 #     print 'input file name:', infile
 #
 #     print 'Writing input file...'
-#     Salty_input.write_to_slugs_resilient(infile,gwg,initial[n],targets[n],7,6)
+#     Salty_input.write_to_slugs_resilient(infile,gwg,initial[n],targets[n],6,6)
 #     print 'Converting input file...'
 #     os.system('python compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
 #     print('Computing controller...')
 #     sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
 #     sp.wait()
-
-infile = 'shieldtest_4x4_2'
-outfile = 'shieldtest_4x4_2.json'
-Salty_input.write_to_slugs_central_shield2(infile,gwg,initial,[6,6],[6,6])
-print 'Converting input file...'
-os.system('python compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
-print('Computing controller...')
-sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
-sp.wait()
-simulateController.centralizedShield(outfile,gwg)
+#
+# infile = 'shieldtest_4x4_2'
+# outfile = 'shieldtest_4x4_2.json'
+# Salty_input.write_to_slugs_central_shield2(infile,gwg,initial,[6,6],[6,6])
+# print 'Converting input file...'
+# os.system('python compiler.py ' + infile + '.structuredslugs > ' + infile + '.slugsin')
+# print('Computing controller...')
+# sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
+# sp.wait()
+local_filenames = ['LocalController4x4_0.json','LocalController4x4_1.json']
+shield_filename = 'shieldtest_4x4_2.json'
+simulateController.centralizedShield_Local(local_filenames,shield_filename,gwg)
+# simulateController.centralizedShield(outfile,gwg)
 
 # simulateController.centralizedPermissiveShield(outfile,gwg)
 # sp = subprocess.Popen(slugs + ' --extractExplicitPermissiveStrategy ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)

@@ -161,7 +161,7 @@ def centralizedShield(filename,gwg):
         # print automaton[automaton_state]['State']['sane']
 
 def centralizedShield_Local(local_filenames,shield_filename,gwg):
-    automaton = []*gwg.nagents
+    automaton = [None]*gwg.nagents
     automaton_state = [0]*gwg.nagents
     for n in range(gwg.nagents):
         automaton[n] = parseJson(local_filenames[n])
@@ -170,6 +170,8 @@ def centralizedShield_Local(local_filenames,shield_filename,gwg):
     shield_action = [None]*gwg.nagents
     k = [None]*gwg.nagents
     b = [None]*gwg.nagents
+    x = [None]*gwg.nagents
+    y = [None]*gwg.nagents
     control_action = [None]*gwg.nagents
     shieldcontrolaction = [None]*gwg.nagents
     control_action_dirn = [None]*gwg.nagents
@@ -193,18 +195,25 @@ def centralizedShield_Local(local_filenames,shield_filename,gwg):
                 break
         nextstates = automaton_shield[automaton_shield_state]['Successors']
         for n in range(gwg.nagents):
-            control_action[n] = automaton[n][automaton_state]['State']['u']
-            for ns in nextstates:
-                for m in range(gwg.nagents):
-                    shieldcontrolaction[m] = automaton_shield[ns]['State']['uloc'+str(n)]
-                if control_action == shieldcontrolaction:
+            control_action[n] = automaton[n][automaton_state[n]]['State']['u']
+        for ns in nextstates:
+            for n in range(gwg.nagents):
+                shieldcontrolaction[n] = automaton_shield[ns]['State']['uloc'+str(n)]
+            if control_action == shieldcontrolaction:
+                for n in range(gwg.nagents):
                     k[n] = automaton_shield[ns]['State']['k'+str(n)]
                     b[n] = automaton_shield[ns]['State']['b'+str(n)]
                     shield_action[n] = automaton_shield[ns]['State']['ushield'+str(n)]
                     agentpos[n] = (automaton_shield[ns]['State']['x'+str(n)],automaton_shield[ns]['State']['y'+str(n)])
                     nextgridstate[n] = move_agent(gwg,agentpos[n],shield_action[n])
+                    y[n],x[n] = gwg.coords(nextgridstate[n])
                     automaton_shield_state = copy.deepcopy(ns)
-            a
+                    nextstates_loc = automaton[n][automaton_state[n]]['Successors']
+                    for ns_loc in nextstates_loc:
+                        if automaton[n][ns]['State']['x'] == x[n] and automaton[n][ns]['State']['y'] == y[n] and automaton[n][ns]['State']['k'] == k[n] and automaton[n][ns]['State']['b'] == b[n]:
+                            automaton_state[n] = copy.deepcopy(ns_loc)
+                            break
+                    break
 
         check_int(gwg,shield_action,control_action)
         print '{} steps interfered with'.format(k)
