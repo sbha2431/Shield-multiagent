@@ -210,10 +210,10 @@ def centralizedShield_Local(local_filenames,shield_filename,gwg):
                     automaton_shield_state = copy.deepcopy(ns)
                     nextstates_loc = automaton[n][automaton_state[n]]['Successors']
                     for ns_loc in nextstates_loc:
-                        if automaton[n][ns]['State']['x'] == x[n] and automaton[n][ns]['State']['y'] == y[n] and automaton[n][ns]['State']['k'] == k[n] and automaton[n][ns]['State']['b'] == b[n]:
+                        if automaton[n][ns_loc]['State']['x'] == x[n] and automaton[n][ns_loc]['State']['y'] == y[n] and automaton[n][ns_loc]['State']['k'] == k[n] and automaton[n][ns_loc]['State']['b'] == b[n]:
                             automaton_state[n] = copy.deepcopy(ns_loc)
                             break
-                    break
+                break
 
         check_int(gwg,shield_action,control_action)
         print '{} steps interfered with'.format(k)
