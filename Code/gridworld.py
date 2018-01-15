@@ -161,10 +161,19 @@ class Gridworld():
             return 'deterministic'
 
     def gridToTerritory(self,state):
-        return self.territories.keys()[self.territories.values().index(state)]
+        for g in self.territories.keys():
+            if state in self.territories[g]['states']:
+                return g
+    def gridstateToTerritorystate(self,state):
+        for g in self.territories.keys():
+            if state in self.territories[g]['states']:
+                return self.territories[g]['states'].index(state)
 
     def territoryToGrid(self,localgrid,state):
-        return self.territories[localgrid][state]
+        return self.territories[localgrid]['states'][state]
+
+    def territorycoords(self,g, s):
+        return (s / self.territories[g]['cols'], s % self.territories[g]['cols'])
 
     ## Everything from here onwards is for creating the image
 

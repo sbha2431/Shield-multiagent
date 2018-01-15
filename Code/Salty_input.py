@@ -219,14 +219,14 @@ def write_to_slugs_central_shield2(infile,gw,init,k,b):
     file.write(stri)
     file.close()
 
-def write_to_slugs_dist_shield(infile,gw,init,k,b):
-    states = gw.states
+def write_to_slugs_dist_shield(infile,gw,territory,border,init,k,b):
+    states = range(gw[territory]['states'])
     filename = infile+'.structuredslugs'
     file = open(filename,'w')
     file.write('[INPUT]\n')
     for n in range(gw.nagents):
-        file.write('x{}:0...{}\n'.format(n,gw.ncols-1))
-        file.write('y{}:0...{}\n'.format(n,gw.nrows-1))
+        file.write('x{}:0...{}\n'.format(n,gw.territories[territory]['cols']-1))
+        file.write('y{}:0...{}\n'.format(n,gw.territories[territory]['rows']-1))
         file.write('uloc{}:0...{}\n'.format(n,gw.nactions-1))
 
 
@@ -255,12 +255,18 @@ def write_to_slugs_dist_shield(infile,gw,init,k,b):
     file.write('\n[ENV_TRANS]\n')
     for n in range(gw.nagents):
         for s in states:
-            y,x = gw.coords(s)
+            global_s = gw.territoryToGrid(territory,s)
+            y,x = gw.territorycoords(s)
             for ushield in range(gw.nactions):
                 stri = "(x{} = {} /\\ y{} = {} /\\ ushield{} = {}) -> ".format(n,x,n,y,n,ushield)
-                ns = np.nonzero(gw.prob[gw.actlist[ushield]][s])[0][0]
-                ny,nx = gw.coords(ns)
-                stri += "(x{}' = {} /\\ y{}' = {})\n".format(n,nx,n,ny)
+                nglobal_s = np.nonzero(gw.prob[gw.actlist[ushield]][global_s])[0][0]
+                if nglobal_s in gw[territory]['states']:
+                    ns = gw.gridstateToTerritorystate(nglobal_s)
+                    ny,nx = gw.territorycoords(ns)
+                    stri += "(x{}' = {} /\\ y{}' = {})\n".format(n,nx,n,ny)
+                else:
+                    nx = gw[territory]['cols']
+                    ny = gw[territory]['rows']
                 file.write(stri)
 
     #Writing sys liveness
