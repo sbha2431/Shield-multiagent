@@ -8,7 +8,7 @@ import pygame.locals as pgl
 
 class Gridworld():
     # a gridworld with uneven terrain
-    def __init__(self, initial=0, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),size=30):
+    def __init__(self, initial=0, nrows=8, ncols=8, nagents=1, targets=[], obstacles=[], moveobstacles = [], regions=dict(),territories=None):
         # walls are the obstacles. The edges of the gridworld will be included into the walls.
         # region is a string and can be one of: ['pavement','gravel', 'grass', 'sand']
         self.current = initial
@@ -18,6 +18,7 @@ class Gridworld():
         self.nstates = nrows * ncols
         self.nactions = 5
         self.regions = regions
+        self.territories = territories
         self.actlist = ['N', 'S', 'W', 'E', 'R']
         self.targets = targets
         self.left_edge = []
@@ -115,16 +116,6 @@ class Gridworld():
         southwestState = self.isAllowedState((row+1,col-1),state)
         westState = self.isAllowedState((row,col-1),state)
         eastState = self.isAllowedState((row,col+1),state)
-        # northState = (self.isAllowed(state - self.ncols) and state - self.ncols) or state
-        # northwestState = (self.isAllowed(state - 1 - self.ncols) and state - 1 - self.ncols) or state
-        # northeastState = (self.isAllowed(state + 1 - self.ncols) and state - self.ncols + 1) or state
-        #
-        # southState = (self.isAllowed(state + self.ncols) and state + self.ncols) or state
-        # southeastState = (self.isAllowed(state + 1 + self.ncols) and state + 1 + self.ncols) or state
-        # southwestState = (self.isAllowed(state - 1 + self.ncols) and state - 1 + self.ncols) or state
-        #
-        # westState = (self.isAllowed(state - 1) and state - 1) or state
-        # eastState = (self.isAllowed(state + 1) and state + 1) or state
 
         reg = self.getStateRegion(state)
         if action == 'N':
@@ -168,6 +159,12 @@ class Gridworld():
             return 'sand'
         if state in self.regions['deterministic']:
             return 'deterministic'
+
+    def gridToTerritory(self,state):
+        return self.territories.keys()[self.territories.values().index(state)]
+
+    def territoryToGrid(self,localgrid,state):
+        return self.territories[localgrid][state]
 
     ## Everything from here onwards is for creating the image
 

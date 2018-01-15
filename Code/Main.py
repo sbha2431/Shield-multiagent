@@ -40,8 +40,8 @@ outfile = 'LocalController_{}x{}.json'.format(gwg.nrows,gwg.ncols)
 # sp = subprocess.Popen(slugs + ' --explicitStrategy --jsonOutput ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
 # sp.wait()
 # for n in range(nagents):
-#     outfile = 'LocalController{}x{}_{}.json'.format(gwg.nrows,gwg.ncols,n)
-#     infile = 'LocalController{}x{}_{}'.format(gwg.nrows,gwg.ncols,n)
+#     outfile = 'LocalController1{}x{}_{}.json'.format(gwg.nrows,gwg.ncols,n)
+#     infile = 'LocalController1{}x{}_{}'.format(gwg.nrows,gwg.ncols,n)
 #     print 'output file: ', outfile
 #     print 'input file name:', infile
 #
@@ -62,9 +62,3 @@ outfile = 'LocalController_{}x{}.json'.format(gwg.nrows,gwg.ncols)
 local_filenames = ['LocalController4x5_0.json','LocalController4x5_1.json']
 shield_filename = 'shieldtest_4x4_2.json'
 simulateController.centralizedShield_Local(local_filenames,shield_filename,gwg)
-# simulateController.centralizedShield(outfile,gwg)
-
-# simulateController.centralizedPermissiveShield(outfile,gwg)
-# sp = subprocess.Popen(slugs + ' --extractExplicitPermissiveStrategy ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
-# #     # sp = subprocess.Popen(slugs + ' --analyzeInitialPositions ' + infile + '.slugsin > '+ outfile,shell=True, stdout=subprocess.PIPE)
-# #     # # sp = subprocess.Popen(slugs + ' --counterStrategy ' + infile+'.slugsin > ' + outfile,shell=True, stdout=subprocess.PIPE)
